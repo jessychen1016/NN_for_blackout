@@ -62,9 +62,9 @@ optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
 loss_func = torch.nn.MSELoss()  # this is for regression mean squared loss
 
 plt.ion()   # something about plotting
-
-for t in range(20000):
-    a,b = produce_data()
+a,b = produce_data()
+for t in range(200000):
+    
     prediction = net(a)     # input x and predict based on x
 
     loss = loss_func(prediction, b)     # must be (1. nn output, 2. target)
