@@ -5,14 +5,13 @@ import numpy as np
 device   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 from tensorboardX import SummaryWriter
 
-
-def produce_data(batch_size=128, disturb=0.01):
-    a = np.random.uniform(10, 100, size=(batch_size,6))
+torch.cuda.set_device(2)
+def produce_data(batch_size=128, disturb=0.03):
+    a = np.random.uniform(10, 100, size=(batch_size,7))
     b = np.random.uniform(10, 100, size=(batch_size,2))
-
+    xstart = np.random.uniform(498, 506, size=1)
     for i in range(batch_size):
         alpha = np.random.uniform(0.03, 0.1, size=1)
-        xstart = np.random.uniform(498, 506, size=1)
         a[i,0] = np.random.uniform(480, 498, size=1)
         a[i,1] = (xstart-a[i,0])*(alpha+np.random.uniform(-disturb, disturb, size=1))
         xgap = np.random.uniform(30, 50, size=1)
@@ -21,6 +20,7 @@ def produce_data(batch_size=128, disturb=0.01):
         xgap = np.random.uniform(30, 50, size=1)
         a[i,4] = a[i,2]-xgap
         a[i,5] = (xstart-a[i,4])*(alpha+np.random.uniform(-disturb, disturb, size=1))
+        a[i,6] = xstart
         b[i] = [1,xstart * alpha]
 
     a = torch.FloatTensor(a).to(device)
@@ -54,17 +54,17 @@ class Net(torch.nn.Module):
         x = F.relu(self.hidden3(x))
         x = self.predict(x)             # linear output
         return x
-writer = SummaryWriter(log_dir="./log")
-net = Net(n_feature=6, n_hidden1=64, n_hidden2=128, n_hidden3=64, n_output=2).to(device)     # define the network
+writer = SummaryWriter(log_dir="./log3")
+net = Net(n_feature=7, n_hidden1=64, n_hidden2=128, n_hidden3=64, n_output=2).to(device)     # define the network
 print(net)  # net architecture
 
 optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
 loss_func = torch.nn.MSELoss()  # this is for regression mean squared loss
 
 plt.ion()   # something about plotting
-a,b = produce_data()
-for t in range(200000):
-    
+
+for t in range(2000000):
+    a,b = produce_data(batch_size=256)
     prediction = net(a)     # input x and predict based on x
 
     loss = loss_func(prediction, b)     # must be (1. nn output, 2. target)
@@ -74,4 +74,8 @@ for t in range(200000):
     optimizer.step()        # apply gradients
     # print('loss = %.4f' % loss.detach().cpu().numpy())
     writer.add_scalar('loss', loss.detach().cpu().numpy(), t) 
-torch.save(net.state_dict(), "./state_dict.pt")
+    if t % 1000 == 0:
+        torch.save(net.state_dict(), "./state_dict3.pt")
+
+print("Done");
+torch.save(net.state_dict(), "./state_dict3.pt")
